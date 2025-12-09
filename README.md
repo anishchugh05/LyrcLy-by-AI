@@ -7,9 +7,6 @@ Prerequisites
 Node.js 18+
 OpenAI or Anthropic API key
 Installation
-# Extract the downloaded archive
-tar -xzf lyricsmith-clean.tar.gz
-cd AI-Songwriting-Assistant
 
 # Install dependencies
 npm install
@@ -30,6 +27,7 @@ ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
 Start the Server
 npm run dev
 Your API is now running at http://localhost:3000 🎉
+Your front-end will be running at http://localhost:8080/
 
 📝 Available Endpoints
 Generate Song Lyrics
@@ -74,27 +72,21 @@ r&b - Smooth, soulful, emotional
 country - Storytelling, acoustic, authentic
 indie - Poetic, alternative, creative
 rock - Powerful, guitar-driven, energetic
+
 Vibes
 sad - Soft, melancholic, longing
 hype - Energetic, confident, celebratory
 dreamy - Atmospheric, ethereal, gentle
 aggressive - Sharp, confrontational, intense
 romantic - Heartfelt, warm, intimate
+
 Themes
 love - Romance, relationships, connection
 breakup - Heartbreak, moving on, loss
 struggle - Overcoming obstacles, resilience
 celebration - Joy, success, milestones
 nostalgia - Memories, past, reflection
-💰 API Costs
-OpenAI GPT-4o-mini
-Song Generation: ~$0.002
-Revision: ~$0.001
-Music Suggestions: ~$0.001
-Anthropic Claude
-Song Generation: ~$0.003
-Revision: ~$0.002
-Music Suggestions: ~$0.002
+
 Both services offer free credits covering hundreds of song generations!
 
 🛠️ Testing
@@ -146,16 +138,12 @@ SQLite: Local database for session persistence
 Automatic Setup: Database created automatically on first run
 Tables: Songs, revisions, and usage tracking
 Data Storage: Lyrics, metadata, revision history
+
 🚀 Deployment
-Environment Variables
-NODE_ENV=production
-LLM_PROVIDER=openai
-OPENAI_API_KEY=your_production_key
-DATABASE_URL=./data/lyricsmith.db
-CORS_ORIGIN=https://yourdomain.com
 Production Build
 npm run build
 npm start
+
 🎯 What You Can Build
 Web Apps: React, Vue, Angular frontends
 Mobile Apps: React Native or native applications
@@ -164,6 +152,7 @@ Chatbots: Discord, Telegram, Slack bots
 Browser Extensions: Songwriting assistants
 Webhooks: Real-time song generation
 SaaS Platforms: Multi-user songwriting services
+
 🎨 Example Use Cases
 Musician
 "I'm stuck on a chorus for my pop song about heartbreak. Can you help me make it more emotional?"
