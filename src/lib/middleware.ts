@@ -28,10 +28,14 @@ export class MiddlewareService {
   // CORS configuration
   configureCORS(request: NextRequest): { response: NextResponse | null; allowedOrigin: string | null } {
     const origin = request.headers.get('origin');
-    const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:5173')
+    const envOrigins = (process.env.CORS_ORIGIN || '')
       .split(',')
       .map(o => o.trim())
       .filter(Boolean);
+
+    // Always include default local origins
+    const defaultOrigins = ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:8080'];
+    const allowedOrigins = [...new Set([...envOrigins, ...defaultOrigins])];
 
     const allowedOrigin = origin && allowedOrigins.includes(origin)
       ? origin
@@ -48,7 +52,13 @@ export class MiddlewareService {
       return { response: preflight, allowedOrigin };
     }
 
-    if (origin && !allowedOrigins.includes(origin)) {
+    // Allow requests with no origin (like curl or server-to-server)
+    if (!origin) {
+      return { response: null, allowedOrigin: null };
+    }
+
+    if (!allowedOrigins.includes(origin)) {
+      console.warn(`Blocked CORS request from origin: ${origin}`);
       return {
         response: new NextResponse(
           JSON.stringify({
@@ -139,19 +149,23 @@ export class MiddlewareService {
 
       if (error instanceof Error) {
         // Handle Zod validation errors
-        if (error.name === 'ZodError') {
+        if (error.name === 'ZodError' || (error as any).errors) {
           const zodError = error as any;
+          const details = zodError.errors && Array.isArray(zodError.errors)
+            ? zodError.errors.map((err: any) => ({
+              field: err.path ? err.path.join('.') : 'unknown',
+              message: err.message,
+              code: err.code
+            }))
+            : [{ message: error.message }];
+
           return {
             error: new NextResponse(
               JSON.stringify({
                 success: false,
                 error: 'Validation failed',
                 code: 'VALIDATION_ERROR',
-                details: zodError.errors.map((err: any) => ({
-                  field: err.path.join('.'),
-                  message: err.message,
-                  code: err.code
-                }))
+                details
               }),
               { status: 400, headers: { 'Content-Type': 'application/json' } }
             )

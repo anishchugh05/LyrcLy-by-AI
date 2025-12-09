@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Song Generation Types
-export const GenreSchema = z.enum(['pop', 'rap', 'r&b', 'country', 'indie', 'rock']);
+export const GenreSchema = z.enum(['pop', 'rap', 'r&b', 'country', 'indie', 'rock', 'hiphop', 'rnb']);
 export type Genre = z.infer<typeof GenreSchema>;
 
 export const VibeSchema = z.enum(['sad', 'hype', 'dreamy', 'aggressive', 'romantic', 'chill']);
