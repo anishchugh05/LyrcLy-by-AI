@@ -188,6 +188,7 @@ export interface GenerateParams {
   style?: string;
   seedPhrase?: string;
   sections?: string[];
+  uniquenessHint?: string;
 }
 
 export interface ReviseParams {
@@ -239,6 +240,7 @@ export interface SystemPromptContext {
   style?: string;
   seedPhrase?: string;
   sections?: string[];
+  uniquenessHint?: string;
 }
 
 export interface RevisionPromptContext {

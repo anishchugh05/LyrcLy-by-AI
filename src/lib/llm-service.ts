@@ -1,5 +1,6 @@
 import OpenAI from 'openai';
 import Anthropic from '@anthropic-ai/sdk';
+import { randomUUID } from 'crypto';
 import {
   LyricsResponse,
   GenerateParams,
@@ -62,10 +63,14 @@ export class LLMService implements LLMServiceClient {
   }
 
   private buildGeneratePrompt(context: SystemPromptContext): string {
+    const uniqueness = context.uniquenessHint || randomUUID();
     const genreConventions = this.getGenreConventions(context.genre);
     const vibeGuidelines = this.getVibeGuidelines(context.vibe);
 
     return `You are LyricSmith, an AI songwriting partner. Your job is to help users create original song lyrics based on their desired parameters.
+
+🔒 Uniqueness token: ${uniqueness}
+Use this token internally to vary word choices so every output is unique. Do NOT include the token or reference it in the lyrics.
 
 🎵 Genre: ${context.genre.toUpperCase()}
 ${genreConventions}
@@ -478,8 +483,9 @@ export function createLLMService(): LLMServiceClient {
 // Lightweight mock service to keep the UI working in development without API keys
 class MockLLMService implements LLMServiceClient {
   async generateLyrics(params: GenerateParams): Promise<LyricsResponse> {
+    const uniqueness = params.uniquenessHint || randomUUID();
     return {
-      verse1: `(${params.genre} • ${params.vibe}) Verse about ${params.theme}: Falling into the groove with ${params.seedPhrase || 'a spark of sound'}.`,
+      verse1: `(${params.genre} • ${params.vibe}) Verse about ${params.theme}: Falling into the groove with ${params.seedPhrase || 'a spark of sound'} — ${uniqueness.slice(0, 6)}.`,
       preChorus: 'Building up the feeling, letting colors start to glow.',
       chorus: 'This is our moment, we light up the night, hearts in stereo, we’re taking flight.',
       bridge: 'Softly we echo, drifting on the skyline.',

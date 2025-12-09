@@ -3,6 +3,7 @@ import { withMiddleware, createSuccessResponse } from '@/lib/middleware';
 import { createLLMService } from '@/lib/llm-service';
 import { getDatabase } from '@/lib/database';
 import { GenerateSongRequestSchema, GenerateSongRequest } from '@/types';
+import { randomUUID } from 'crypto';
 
 async function generateSongHandler(
   request: NextRequest,
@@ -23,7 +24,8 @@ async function generateSongHandler(
       theme: data.theme,
       style: data.style,
       seedPhrase: data.seedPhrase,
-      sections: data.sections
+      sections: data.sections,
+      uniquenessHint: randomUUID()
     });
 
     // Generate music suggestions
