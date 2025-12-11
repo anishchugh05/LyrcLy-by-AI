@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { withMiddleware, createSuccessResponse } from '@/lib/middleware';
 import { createLLMService } from '@/lib/llm-service';
 import { getDatabase } from '@/lib/database';
-import { GenerateSongRequestSchema, GenerateSongRequest } from '@/types';
+import { GenerateSongRequestSchema, GenerateSongRequest, VoiceStyle, VoiceOptions } from '@/types';
 import { randomUUID } from 'crypto';
 
 async function generateSongHandler(
@@ -39,13 +39,23 @@ async function generateSongHandler(
       }
     });
 
+    const availableVoiceStyles = Object.values(VoiceStyle);
+    const voiceOptions: VoiceOptions = {
+      artistStyle: null,
+      tempo: data.style === 'fast' ? 1.25 : data.style === 'slow' ? 0.9 : 1,
+      emotion: data.vibe,
+      availableVoiceStyles,
+      generatedVoiceUrl: null
+    };
+
     // Calculate metadata
     const metadata = {
       genre: data.genre,
       vibe: data.vibe,
       theme: data.theme,
       wordCount: calculateWordCount(lyrics),
-      estimatedDuration: estimateDuration(lyrics, suggestions.tempo?.bpm || 120)
+      estimatedDuration: estimateDuration(lyrics, suggestions.tempo?.bpm || 120),
+      voiceOptions
     };
 
     // Store in database (returns persisted ID)
@@ -65,7 +75,10 @@ async function generateSongHandler(
       songId,
       lyrics,
       metadata,
-      suggestions
+      suggestions,
+      voiceOptions,
+      availableVoiceStyles,
+      generatedVoiceUrl: null
     });
 
   } catch (error) {

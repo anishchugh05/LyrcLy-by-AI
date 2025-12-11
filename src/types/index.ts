@@ -1,4 +1,6 @@
 import { z } from 'zod';
+export * from './voice';
+import { VoiceStyle, VoiceOptions, VoiceGenerationRecord } from './voice';
 
 // Song Generation Types
 export const GenreSchema = z.enum(['pop', 'rap', 'r&b', 'country', 'indie', 'rock', 'hiphop', 'rnb']);
@@ -65,6 +67,7 @@ export interface SongMetadata {
   theme: string;
   wordCount: number;
   estimatedDuration: string;
+  voiceOptions?: VoiceOptions;
 }
 
 export interface MusicSuggestions {
@@ -82,6 +85,9 @@ export interface GenerateSongResponse {
     lyrics: LyricsResponse;
     metadata: SongMetadata;
     suggestions: MusicSuggestions;
+    voiceOptions: VoiceOptions;
+    availableVoiceStyles: VoiceStyle[];
+    generatedVoiceUrl: string | null;
   };
 }
 
@@ -151,6 +157,9 @@ export interface SongData {
   theme: string;
   lyricsJson: string;
   metadataJson?: string;
+  voiceUrl?: string | null;
+  voiceStyle?: VoiceStyle | null;
+  voicePreset?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -171,6 +180,8 @@ export interface ApiUsage {
   endpoint: string;
   timestamp: Date;
 }
+
+export interface VoiceGenerationHistory extends VoiceGenerationRecord {}
 
 // LLM Service Types
 export interface LLMConfig {
@@ -241,6 +252,10 @@ export interface SystemPromptContext {
   seedPhrase?: string;
   sections?: string[];
   uniquenessHint?: string;
+  voiceGenerationEnabled?: boolean;
+  voiceStyle?: VoiceStyle;
+  voiceOptions?: VoiceOptions;
+  generatedVoiceUrl?: string | null;
 }
 
 export interface RevisionPromptContext {

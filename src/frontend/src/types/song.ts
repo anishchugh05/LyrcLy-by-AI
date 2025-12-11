@@ -2,6 +2,14 @@ export type Genre = 'pop' | 'hiphop' | 'rnb' | 'country' | 'indie' | 'rock';
 
 export type Vibe = 'sad' | 'hype' | 'dreamy' | 'aggressive' | 'romantic' | 'chill';
 
+export type VoiceStyle =
+  | 'taylor-swift'
+  | 'ed-sheeran'
+  | 'drake'
+  | 'billie-eilish'
+  | 'adele'
+  | 'weeknd';
+
 export interface LyricSection {
   type: 'verse' | 'chorus' | 'pre-chorus' | 'bridge' | 'hook' | 'outro' | 'intro';
   number?: number;

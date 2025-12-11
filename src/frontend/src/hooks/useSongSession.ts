@@ -1,5 +1,5 @@
-import { useState, useCallback } from "react";
-import { SongSession, Genre, Vibe, LyricSection, MusicSuggestion, ChatMessage } from "@/types/song";
+import { useState, useCallback, useEffect } from "react";
+import { SongSession, Genre, Vibe, LyricSection, MusicSuggestion, ChatMessage, VoiceStyle } from "@/types/song";
 
 const API_BASE = '/api';
 
@@ -67,6 +67,10 @@ export function useSongSession() {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [voicePreviewLoading, setVoicePreviewLoading] = useState(false);
+  const [voicePreviewUrl, setVoicePreviewUrl] = useState<string | null>(null);
+  const [voicePreviewError, setVoicePreviewError] = useState<string | null>(null);
+  const [selectedVoiceStyle, setSelectedVoiceStyle] = useState<VoiceStyle>('taylor-swift');
 
   const setGenre = useCallback((genre: Genre) => {
     setSession(prev => ({ ...prev, genre }));
@@ -245,6 +249,57 @@ export function useSongSession() {
 
   const canGenerate = Boolean(session.genre && session.vibe && session.theme.trim());
 
+  const joinLyrics = useCallback(() => {
+    return session.lyrics.map(section => `[${section.type}] ${section.content}`).join('\n');
+  }, [session.lyrics]);
+
+  const previewVoice = useCallback(async () => {
+    if (!session.lyrics.length) {
+      setVoicePreviewError('Generate lyrics first to preview a voice.');
+      return;
+    }
+
+    setVoicePreviewLoading(true);
+    setVoicePreviewError(null);
+
+    try {
+      const response = await fetch(`${API_BASE}/preview-voice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lyrics: joinLyrics(),
+          artistStyle: selectedVoiceStyle,
+          duration: 10
+        })
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || 'Preview request failed');
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setVoicePreviewUrl(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } catch (error: any) {
+      console.error('Voice preview failed:', error);
+      setVoicePreviewError(error?.message || 'Could not generate preview');
+    } finally {
+      setVoicePreviewLoading(false);
+    }
+  }, [joinLyrics, selectedVoiceStyle, session.lyrics.length]);
+
+  useEffect(() => {
+    return () => {
+      if (voicePreviewUrl) {
+        URL.revokeObjectURL(voicePreviewUrl);
+      }
+    };
+  }, [voicePreviewUrl]);
+
   return {
     session,
     isLoading,
@@ -256,5 +311,11 @@ export function useSongSession() {
     sendMessage,
     reviseLyrics,
     canGenerate,
+    voicePreviewLoading,
+    voicePreviewUrl,
+    voicePreviewError,
+    selectedVoiceStyle,
+    setSelectedVoiceStyle,
+    previewVoice,
   };
 }

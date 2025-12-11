@@ -1,6 +1,6 @@
 import Database from 'better-sqlite3';
 import { v4 as uuidv4 } from 'uuid';
-import { SongData, RevisionData, ApiUsage } from '@/types';
+import { SongData, RevisionData, ApiUsage, VoiceGenerationRecord } from '@/types';
 import path from 'path';
 import fs from 'fs';
 
@@ -32,10 +32,16 @@ export class DatabaseService {
         theme TEXT NOT NULL,
         lyrics_json TEXT NOT NULL,
         metadata_json TEXT,
+        voice_url TEXT,
+        voice_style TEXT,
+        voice_preset TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    this.ensureColumn('songs', 'voice_url', 'TEXT');
+    this.ensureColumn('songs', 'voice_style', 'TEXT');
+    this.ensureColumn('songs', 'voice_preset', 'TEXT');
 
     // Create revisions table
     this.db.exec(`
@@ -61,6 +67,25 @@ export class DatabaseService {
       )
     `);
 
+    // Create voice generation tracking
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS voice_generations (
+        id TEXT PRIMARY KEY,
+        song_id TEXT,
+        voice_style TEXT NOT NULL,
+        voice_preset TEXT NOT NULL,
+        voice_url TEXT,
+        duration REAL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (song_id) REFERENCES songs(id)
+      )
+    `);
+
+    this.db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_voice_generations_song_id ON voice_generations(song_id);
+      CREATE INDEX IF NOT EXISTS idx_voice_generations_created_at ON voice_generations(created_at);
+    `);
+
     // Create indexes for better performance
     this.db.exec(`
       CREATE INDEX IF NOT EXISTS idx_songs_created_at ON songs(created_at);
@@ -70,14 +95,22 @@ export class DatabaseService {
     `);
   }
 
+  private ensureColumn(table: string, column: string, type: string): void {
+    const columns = this.db.prepare(`PRAGMA table_info(${table})`).all() as any[];
+    const exists = columns.some(col => col.name === column);
+    if (!exists) {
+      this.db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${type}`);
+    }
+  }
+
   // Song operations
   async createSong(songData: Omit<SongData, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> {
     const id = uuidv4();
     const now = new Date().toISOString();
 
     const stmt = this.db.prepare(`
-      INSERT INTO songs (id, genre, vibe, theme, lyrics_json, metadata_json, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO songs (id, genre, vibe, theme, lyrics_json, metadata_json, voice_url, voice_style, voice_preset, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -87,6 +120,9 @@ export class DatabaseService {
       songData.theme,
       songData.lyricsJson,
       songData.metadataJson || null,
+      songData.voiceUrl || null,
+      songData.voiceStyle || null,
+      songData.voicePreset || null,
       now,
       now
     );
@@ -109,6 +145,9 @@ export class DatabaseService {
       theme: row.theme,
       lyricsJson: row.lyrics_json,
       metadataJson: row.metadata_json,
+      voiceUrl: row.voice_url,
+      voiceStyle: row.voice_style,
+      voicePreset: row.voice_preset,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at)
     };
@@ -138,6 +177,18 @@ export class DatabaseService {
       fields.push('metadata_json = ?');
       values.push(updates.metadataJson);
     }
+    if (updates.voiceUrl !== undefined) {
+      fields.push('voice_url = ?');
+      values.push(updates.voiceUrl);
+    }
+    if (updates.voiceStyle !== undefined) {
+      fields.push('voice_style = ?');
+      values.push(updates.voiceStyle);
+    }
+    if (updates.voicePreset !== undefined) {
+      fields.push('voice_preset = ?');
+      values.push(updates.voicePreset);
+    }
 
     if (fields.length === 0) {
       return;
@@ -149,6 +200,15 @@ export class DatabaseService {
 
     const stmt = this.db.prepare(`UPDATE songs SET ${fields.join(', ')} WHERE id = ?`);
     stmt.run(...values);
+  }
+
+  async updateSongVoice(
+    songId: string,
+    voiceUrl: string | null,
+    voiceStyle?: string | null,
+    voicePreset?: string | null
+  ): Promise<void> {
+    await this.updateSong(songId, { voiceUrl, voiceStyle, voicePreset });
   }
 
   async deleteSong(songId: string): Promise<void> {
@@ -216,6 +276,48 @@ export class DatabaseService {
       newLyrics: row.new_lyrics,
       createdAt: new Date(row.created_at)
     };
+  }
+
+  // Voice generation operations
+  async createVoiceGeneration(record: Omit<VoiceGenerationRecord, 'id' | 'createdAt'>): Promise<string> {
+    const id = uuidv4();
+    const now = new Date().toISOString();
+
+    const stmt = this.db.prepare(`
+      INSERT INTO voice_generations (id, song_id, voice_style, voice_preset, voice_url, duration, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    stmt.run(
+      id,
+      record.songId || null,
+      record.voiceStyle,
+      record.voicePreset,
+      record.voiceUrl ?? null,
+      record.duration ?? null,
+      now
+    );
+
+    return id;
+  }
+
+  async getVoiceGenerations(songId?: string): Promise<VoiceGenerationRecord[]> {
+    const query = songId
+      ? 'SELECT * FROM voice_generations WHERE song_id = ? ORDER BY created_at DESC'
+      : 'SELECT * FROM voice_generations ORDER BY created_at DESC';
+
+    const stmt = this.db.prepare(query);
+    const rows = songId ? stmt.all(songId) : stmt.all();
+
+    return (rows as any[]).map(row => ({
+      id: row.id,
+      songId: row.song_id || undefined,
+      voiceStyle: row.voice_style,
+      voicePreset: row.voice_preset,
+      voiceUrl: row.voice_url,
+      duration: row.duration,
+      createdAt: new Date(row.created_at)
+    }));
   }
 
   // Rate limiting operations

@@ -6,9 +6,9 @@ import { LyricsDisplay } from "@/components/LyricsDisplay";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatMessages } from "@/components/ChatMessages";
 import { SessionStatus } from "@/components/SessionStatus";
+import { VoicePreview } from "@/components/VoicePreview";
 import { AnimatedBackground } from "@/components/AnimatedBackground";
 import { useSongSession } from "@/hooks/useSongSession";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Index = () => {
   const {
@@ -22,7 +22,22 @@ const Index = () => {
     sendMessage,
     reviseLyrics,
     canGenerate,
+    voicePreviewLoading,
+    voicePreviewUrl,
+    voicePreviewError,
+    selectedVoiceStyle,
+    setSelectedVoiceStyle,
+    previewVoice,
   } = useSongSession();
+
+  const voiceStyles = [
+    { id: 'taylor-swift', label: 'Taylor Swift', description: 'Bright, clear pop vocal' },
+    { id: 'ed-sheeran', label: 'Ed Sheeran', description: 'Warm, acoustic storyteller' },
+    { id: 'drake', label: 'Drake', description: 'Deep, confident rap tone' },
+    { id: 'billie-eilish', label: 'Billie Eilish', description: 'Soft, intimate whisper-pop' },
+    { id: 'adele', label: 'Adele', description: 'Powerful, soulful belts' },
+    { id: 'weeknd', label: 'The Weeknd', description: 'Atmospheric, moody croon' },
+  ] as const;
 
   return (
     <div className="min-h-screen relative">
@@ -56,27 +71,36 @@ const Index = () => {
               vibe={session.vibe}
               theme={session.theme}
             />
+
+            <VoicePreview
+              styles={voiceStyles}
+              selectedStyle={selectedVoiceStyle}
+              onSelect={setSelectedVoiceStyle}
+              onPreview={previewVoice}
+              isLoading={voicePreviewLoading}
+              audioUrl={voicePreviewUrl}
+              disabled={!session.lyrics.length || isLoading}
+              error={voicePreviewError}
+            />
           </div>
 
           {/* Right Panel - Lyrics & Chat */}
-          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-5">
+          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-3">
             {/* Lyrics Display */}
             <div 
-              className="glass-strong rounded-3xl p-6 flex-1 min-h-[450px] border-glow animate-slide-up" 
+              className="glass-strong rounded-3xl p-6 flex-1 border-glow animate-slide-up" 
               style={{ animationDelay: '100ms' }}
             >
-              <ScrollArea className="h-full max-h-[550px] pr-4">
-                <LyricsDisplay
-                  lyrics={session.lyrics}
-                  musicSuggestion={session.musicSuggestion}
-                  isLoading={isLoading && session.lyrics.length === 0}
-                />
-              </ScrollArea>
+              <LyricsDisplay
+                lyrics={session.lyrics}
+                musicSuggestion={session.musicSuggestion}
+                isLoading={isLoading && session.lyrics.length === 0}
+              />
             </div>
 
             {/* Chat Messages */}
             {session.messages.length > 0 && (
-              <div className="glass rounded-2xl p-5 max-h-[220px] overflow-y-auto animate-fade-in">
+              <div className="glass rounded-2xl p-5 min-h-[240px] max-h-[420px] overflow-y-auto animate-fade-in">
                 <ChatMessages messages={session.messages} />
               </div>
             )}
